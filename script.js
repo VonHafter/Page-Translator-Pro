@@ -53,36 +53,34 @@ function draw(e) {
     ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
 }
 
-function detectKoreanText() {
-    // Placeholder function for detecting Korean text and generating Google Translate version
-    // In a real implementation, you would use an OCR library to detect text and Google Translate API to translate it
+async function detectKoreanText() {
     const textContainer = document.getElementById('textContainer');
     textContainer.innerHTML = ''; // Clear previous text boxes
 
-    // Example text boxes
-    const originalText = '안녕하세요';
-    const translatedText = 'Hello';
+    const { data: { text, blocks } } = await Tesseract.recognize(canvas, 'kor', {
+        logger: m => console.log(m)
+    });
 
-    const textBox = document.createElement('div');
-    textBox.className = 'text-box';
-    textBox.innerHTML = `
-        <textarea readonly>${originalText}</textarea>
-        <textarea>${translatedText}</textarea>
-    `;
-    textContainer.appendChild(textBox);
-}
+    for (const block of blocks) {
+        const originalText = block.text.trim();
+        const translatedText = prompt(`Translate the following text: "${originalText}"`);
 
-function exportImage() {
-    const textBoxes = document.querySelectorAll('.text-box');
-    textBoxes.forEach((box, index) => {
-        const originalText = box.querySelector('textarea:nth-child(1)').value;
-        const translatedText = box.querySelector('textarea:nth-child(2)').value;
+        const textBox = document.createElement('div');
+        textBox.className = 'text-box';
+        textBox.innerHTML = `
+            <textarea readonly>${originalText}</textarea>
+            <textarea>${translatedText}</textarea>
+        `;
+        textContainer.appendChild(textBox);
+
         const textSize = document.getElementById('textSize').value;
         ctx.font = `${textSize}px Arial`;
         ctx.fillStyle = 'black';
-        ctx.fillText(translatedText, 10, canvas.height - 10 - (index * 30));
-    });
+        ctx.fillText(translatedText, block.bbox.x0, block.bbox.y0 + textSize);
+    }
+}
 
+function exportImage() {
     const link = document.createElement('a');
     link.download = 'translated-image.png';
     link.href = canvas.toDataURL();
